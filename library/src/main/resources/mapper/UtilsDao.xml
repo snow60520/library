@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 一些公共mapper,设置为IUtils接口方法提供sql语句配置 -->
+<mapper namespace="com.snow.dao.IUtilsDao">
+    <!---1,查询表里数据总条数，用于分页( select COUNT(*) from tableName)-->
+    <select id="selTableRowCount" resultType="Integer" >
+        <!--SELECT count(*) FROM sys_permission-->
+        CALL selTableRowCount(#{tableName})
+    </select>
+
+</mapper>

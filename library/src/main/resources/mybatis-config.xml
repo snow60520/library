@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration PUBLIC
+		"-//mybatis.org//DTD Config 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-config.dtd">
+
+<configuration>
+	<settings>
+		<!-- 使用jdbc的getGeneratedKeys获取数据库自增主键值 -->
+		<setting name="useGeneratedKeys" value="true" />
+		<!--指定 MyBatis 应如何自动映射列到字段或属性 PARTIAL 只会自动映射没有定义嵌套结果集映射的结果集。FULL 会自动映射任意复杂的结果集（无论是否嵌套）。-->
+		<setting name="autoMappingBehavior" value="FULL"/>
+		<!-- 使用列别名替换列名 默认:true -->
+		<setting name="useColumnLabel" value="true" />
+		<!-- 开启驼峰命名转换:Table{create_time} -> Entity{createTime} -->
+		<setting name="mapUnderscoreToCamelCase" value="true" />
+	</settings>
+	<!-- 3,要包名的方式来设置一个别名，要避免包名下有相同的实体类可以用注解的方式来区别相同的别名 -->
+	<typeAliases>
+		<package name="com.snow.model"></package>
+	</typeAliases>
+</configuration>

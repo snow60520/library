@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 设置为IUserDao接口方法提供sql语句配置 -->
+<mapper namespace="com.snow.dao.ISysRoleDao">
+    <resultMap id="selRoleMap" type="com.snow.model.SysRoleEnt">
+        <id column="role_id" property="roleId"  />
+        <result column="role_name" property="roleName" />
+        <!-- 多对多关联映射：collection,必须写 -->
+        <collection property="perm"  ofType="com.snow.model.SysPerEnt">
+            <id property="perId" column="per_id" /><!-- 写这个表的唯一标示符，如主键 -->
+            <result  property="perName" column="per_name"  />
+        </collection>
+    </resultMap>
+    <!--sys_role表,权限组-->
+    <sql id="Base_Column_List" >
+        role_id, role_name
+    </sql>
+    <!--////////////////////////////////////一，添加///////////////////////////////////////////-->
+    <!--1，添加-->
+    <insert id="insertRole" parameterType="com.snow.model.SysRoleEnt" >
+        insert into sys_role (role_name)
+        values (#{roleName,jdbcType=VARCHAR})
+    </insert>
+    <!--////////////////////////////////////二，删除///////////////////////////////////////////-->
+    <delete id="deleteRoleId" parameterType="java.lang.Long" >
+        delete from sys_role
+        where role_id = #{roleId,jdbcType=BIGINT}
+    </delete>
+    <!--////////////////////////////////////三，修改///////////////////////////////////////////-->
+    <update id="updateRoleByRoleId" parameterType="com.snow.model.SysRoleEnt" >
+        update sys_role set  role_name = #{roleName}
+         where role_id = #{roleId}
+    </update>
+
+    <!--////////////////////////////////////四，查询///////////////////////////////////////////-->
+   <!--1，查询权限组全部记录-->
+    <select id="selectRoleByAll" resultMap="selRoleMap" parameterType="java.lang.Long" >
+        select role_name from sys_role
+        where role_id = #{roleId,jdbcType=BIGINT}
+    </select>
+    <!--2，根据权限组roleId，查询一整条权限记录(权限组记录+权限记录)-->
+    <select id="selectRolePerByRoleId" resultMap="selRoleMap" parameterType="java.lang.Long" >
+        select r.*,p.* from sys_role
+        where role_id = #{roleId}
+    </select>
+    <!--3，根据权限组roleName，查询一整条权限记录(权限组记录+权限记录)-->
+    <select id="selectRolePerByRoleName" resultMap="selRoleMap" parameterType="java.lang.String" >
+        select r.*,p.* from sys_role
+        where role_name = #{roleName}
+    </select>
+    <!--4,根据userId,查询用户的全部权限组-->
+    <select id="selectUserRoleByUserId" resultMap="selRoleMap">
+        SELECT * FROM sys_user_role WHERE user_id=#{userId}
+    </select>
+
+
+
+
+
+
+
+    <select id="selRoleAll"  resultMap="selRoleMap" >
+        SELECT r.*,p.* FROM sys_role r,sys_permission p,sys_role_perm rp
+    </select>
+
+
+</mapper>

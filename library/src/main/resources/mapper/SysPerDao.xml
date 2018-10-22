@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 设置为IUserDao接口方法提供sql语句配置 -->
+<mapper namespace="com.snow.dao.ISysPerDao">
+    <resultMap id="selPerMap" type="com.snow.model.SysPerEnt">
+        <id property="perId" column="per_id" /><!-- 写这个表的唯一标示符，如主键 -->
+        <id property="perName" column="per_name" />
+    </resultMap>
+
+    <select id="isUserPer" resultType="Boolean">
+        SELECT COUNT(p.per_name) FROM sys_user u
+               LEFT JOIN sys_user_role ur ON u.`user_id`=ur.`user_id`
+               LEFT JOIN sys_role r       ON ur.`role_id`=r.`role_id`
+               LEFT JOIN sys_role_perm rp ON r.`role_id`=rp.`role_id`
+               LEFT JOIN sys_permission p ON rp.`per_id`=p.`per_id`
+        WHERE u.user_name=#{userName} AND u.user_state="Y" AND p.per_name=#{perName}
+    </select>
+
+</mapper>

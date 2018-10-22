@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 设置为IUserDao接口方法提供sql语句配置 -->
+<mapper namespace="com.snow.dao.ISysUserDao">
+    <!--mybatis,实体映射-->
+    <resultMap id="selUserResultMap" type="com.snow.model.SysUserEnt" >
+        <id column="user_id" property="userId"  />
+        <result column="user_name" property="userName"  />
+        <result column="user_tel" property="userTel"  />
+        <result column="user_pwd" property="userPwd" />
+        <result column="user_identity" property="userIdentity" />
+        <result column="user_state" property="userState"  />
+        <result column="user_time" property="userTime"  />
+        <!-- 1(user-role)多对多关联映射：collection,必须写 -->
+        <collection  property="roles"  ofType="com.snow.model.SysRoleEnt">
+            <id property="roleId" column="role_id" /><!-- 写这个表的唯一标示符，如主键 -->
+            <!-- 2(role-permission)多对多关联映射：collection,必须写 -->
+            <result  property="roleName" column="role_name" />
+                <collection property="perm"    ofType="com.snow.model.SysPerEnt">
+                    <id property="perId" column="per_id" jdbcType="BIGINT"/><!-- 写这个表的唯一标示符，如主键 -->
+                    <result  property="perName" column="per_name" jdbcType="VARCHAR" />
+                 </collection>
+        </collection>
+    </resultMap>
+    <sql id="Base_Column_List" >
+        user_id, user_name, user_tel, user_pwd, user_identity, user_state, user_time
+    </sql>
+    <!--<include refid="Base_Column_List" />-->
+
+    <!--//1,验证用户(userName)是否存在-->
+    <select id="isUserName" resultType="Boolean">
+        SELECT COUNT(*) FROM sys_user WHERE user_name=#{userName}
+    </select>
+    <!--2,验证用户(userTel)是否存在-->
+    <select id="isUserTel" resultType="Boolean">
+        SELECT COUNT(*) FROM sys_user WHERE user_tel=#{userTel}
+    </select>
+    <!--3,用户注册,用户实体类(userName,userPwd,userTel),userState(默认Y)，userTime（默认当前时间）,-->
+    <insert id="isAddUser"  parameterType="com.snow.model.SysUserEnt">
+        insert into sys_user
+        <trim prefix="(" suffix=")" suffixOverrides="," >
+            <if test="userName != null" >
+                user_name,
+            </if>
+            <if test="userTel != null" >
+                user_tel,
+            </if>
+            <if test="userPwd != null" >
+                user_pwd,
+            </if>
+            <if test="userIdentity != null" >
+                user_identity,
+            </if>
+            <if test="userState != null" >
+                user_state,
+            </if>
+            <if test="userTime != null" >
+                user_time,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides="," >
+            <if test="userName != null" >
+                #{userName,jdbcType=VARCHAR},
+            </if>
+            <if test="userTel != null" >
+                #{userTel,jdbcType=VARCHAR},
+            </if>
+            <if test="userPwd != null" >
+                #{userPwd,jdbcType=VARCHAR},
+            </if>
+            <if test="userIdentity != null" >
+                #{userIdentity},
+            </if>
+            <if test="userState != null" >
+                #{userState,jdbcType=CHAR},
+            </if>
+            <if test="userTime != null" >
+                #{userTime,jdbcType=TIMESTAMP},
+            </if>
+        </trim>
+    </insert>
+    <!--//4,登陆，传入(账号与密码)+账号状态:user_state=Y-,返回帐号,权限组，和权限 -->
+    <select id="selLogin" resultMap="selUserResultMap">
+        SELECT u.*,r.*,p.* FROM sys_user u
+         LEFT JOIN sys_user_role ur ON u.`user_id`=ur.`user_id`
+         LEFT JOIN sys_role r       ON ur.`role_id`=r.`role_id`
+         LEFT JOIN sys_role_perm rp ON r.`role_id`=rp.`role_id`
+         LEFT JOIN sys_permission p ON rp.`per_id`=p.`per_id`
+         WHERE (user_name=#{userName} OR user_tel=#{userName}) AND user_pwd=#{userPwd} AND  user_state="Y"
+    </select>
+    <!--//5,查询全部或模糊查询用户名的总条数-->
+    <select id="getUserCount" resultType="Integer">
+        SELECT COUNT(*) FROM sys_user
+        WHERE user_identity=#{userIdentity}
+        <if test="likeName != null">
+            AND user_name LIKE  CONCAT('%', #{likeName},'%' )
+        </if>
+
+    </select>
+    <!--//5,查询全部或迷糊查询用户-->
+    <select id="getListUser" resultMap="selUserResultMap">
+        SELECT user_id, user_name, user_tel,user_identity, user_state, user_time
+        FROM sys_user
+        WHERE user_identity=#{userIdentity}
+        <if test="likeName != null">
+            AND user_name LIKE  CONCAT('%', #{likeName},'%' )
+        </if>
+        ORDER BY user_id DESC LIMIT #{pageEnt.startRow},#{pageEnt.curPageSize}
+    </select>
+    <!--查询账号的一条详细信息（账号，权限组，权限）-->
+    <select id="getUserRolePerId" resultMap="selUserResultMap" parameterType="Integer">
+    SELECT u.*,r.*,p.* FROM sys_user u
+          LEFT JOIN sys_user_role ur ON u.`user_id`=ur.`user_id`
+          LEFT JOIN sys_role r       ON ur.`role_id`=r.`role_id`
+          LEFT JOIN sys_role_perm rp ON r.`role_id`=rp.`role_id`
+          LEFT JOIN sys_permission p ON rp.`per_id`=p.`per_id`
+    WHERE u.user_id=#{userId}
+</select>
+
+<!--8,修改账号密码传入userId,userPwd-->
+    <update id="isUpdeUserPwd">
+        UPDATE sys_user SET  user_pwd=#{userPwd} WHERE user_id=#{userId}
+    </update>
+
+    <!--9,根据id查询账号身份-->
+    <select id="getIdentity">
+        SELECT user_identity FROM sys_user WHERE user_name=#{userName}
+    </select>
+
+
+    <!--////////////////////////////////////一，添加///////////////////////////////////////////-->
+    <!--1,添加必要-->
+    <insert id="insertAll" parameterType="com.snow.model.SysUserEnt" >
+        insert into sys_user
+                (user_name, user_tel, user_pwd, user_identity)
+        values (#{userName}, #{userTel},#{userPwd}, #{userIdentity})
+    </insert>
+    <!--2,有选择性的添加-->
+    <insert id="insertSelective" parameterType="com.snow.model.SysUserEnt" >
+        insert into sys_user
+        <trim prefix="(" suffix=")" suffixOverrides="," >
+            <if test="userId != null" >
+                user_id,
+            </if>
+            <if test="userName != null" >
+                user_name,
+            </if>
+            <if test="userTel != null" >
+                user_tel,
+            </if>
+            <if test="userPwd != null" >
+                user_pwd,
+            </if>
+            <if test="userIdentity != null" >
+                user_identity,
+            </if>
+            <if test="userState != null" >
+                user_state,
+            </if>
+            <if test="userTime != null" >
+                user_time
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides="," >
+            <if test="userId != null" >
+                #{userId},
+            </if>
+            <if test="userName != null" >
+                #{userName},
+            </if>
+            <if test="userTel != null" >
+                #{userTel},
+            </if>
+            <if test="userPwd != null" >
+                #{userPwd},
+            </if>
+            <if test="userIdentity != null" >
+                #{userIdentity},
+            </if>
+            <if test="userState != null" >
+                #{userState},
+            </if>
+            <if test="userTime != null" >
+                #{userTime}
+            </if>
+        </trim>
+    </insert>
+    <!--3,给一人用户添加一个权限组(sys_user_role表)-->
+    <insert id="insertUserAddRole" >
+        INSERT INTO sys_user_role(user_id,role_id) VALUES(#{userId},#{roleId});
+    </insert>
+
+
+                           <!--sys_user和sys_role表共同-->
+    <!--给用户添加一个权限组-->
+    <insert id="insertUserRole">
+        INSERT INTO sys_user_role(user_id,role_id) VALUES(#{userId},#{roleId})
+    </insert>
+    <!--////////////////////////////////////二，删除///////////////////////////////////////////-->
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Long" >
+
+    </delete>
+                            <!--sys_user和sys_role表共同-->
+   <!--删除用户添加一个权限组-->
+    <delete id="getListUser1">
+        DELETE FROM sys_user_role WHERE user_id=#{userId} AND role_id=#{roleId}
+    </delete>
+    <!--////////////////////////////////////三，修改///////////////////////////////////////////-->
+    <!--根基userId有选择性的修改sys_user表-->
+    <update id="updateByUserIdSelective"     parameterType="com.snow.model.SysUserEnt">
+        update sys_user
+        <set >
+            <if test="userName != null" >
+                user_name = #{userName},
+            </if>
+            <if test="userTel != null" >
+                user_tel = #{userTel},
+            </if>
+            <if test="userPwd != null" >
+                user_pwd = #{userPwd},
+            </if>
+            <if test="userIdentity != null" >
+                user_identity = #{userIdentity},
+            </if>
+            <if test="userState != null" >
+                user_state = #{userState},
+            </if>
+            <if test="userTime != null" >
+                user_time = #{userTime},
+            </if>
+        </set>
+        where user_id = #{userId}
+    </update>
+    <!--根基userName有选择性的修改sys_user表-->
+    <update id="updateByUserNameSelective" parameterType="com.snow.model.SysUserEnt">
+        update sys_user
+        <set >
+            <if test="userTel != null" >
+                user_tel = #{userTel},
+            </if>
+            <if test="userPwd != null" >
+                user_pwd = #{userPwd},
+            </if>
+            <if test="userIdentity != null" >
+                user_identity = #{userIdentity},
+            </if>
+            <if test="userState != null" >
+                user_state = #{userState},
+            </if>
+            <if test="userTime != null" >
+                user_time = #{userTime}
+            </if>
+        </set>
+        where user_name = #{userName}
+    </update>
+
+
+                            <!--sys_user和sys_role表共同-->
+    <!--修改用户一个权限组-->
+    <update id="updateUserRole">
+        UPDATE sys_user_role SET role_id=#{roleId2} WHERE user_id=#{userId} AND role_id=#{roleId1}
+    </update>
+
+    <!--////////////////////////////////////四，查询///////////////////////////////////////////-->
+        <!--1,查询表某一列值是否为真，根据表一列或多列条件-->
+    <select id="selectUserLineByUserEntSelective" resultType="Boolean" parameterType="com.snow.model.SysUserEnt">
+        SELECT COUNT(*) FROM sys_user
+        <where>
+            <if test="userId != null" >
+                 user_id = #{userId}
+            </if>
+            <if test="userName != null" >
+                AND user_name = #{userName}
+            </if>
+            <if test="userTel != null" >
+                AND user_tel = #{userTel}
+            </if>
+            <if test="userPwd != null" >
+                AND user_pwd = #{userPwd}
+            </if>
+            <if test="userIdentity != null" >
+                AND user_identity = #{userIdentity}
+            </if>
+            <if test="userState != null" >
+                AND user_state = #{userState}
+            </if>
+
+        </where>
+    </select>
+        <!--2,查询表列全部值，根据表一列或多列条件-->
+    <select id="selectUserAllByUserEntSelective"  resultMap="selUserResultMap" parameterType="com.snow.model.SysUserEnt">
+        SELECT * FROM sys_user
+        <where>
+            <if test="userId != null" >
+                user_id = #{userId}
+            </if>
+            <if test="userName != null" >
+                AND user_name = #{userName}
+            </if>
+            <if test="userTel != null" >
+                AND user_tel = #{userTel}
+            </if>
+            <if test="userPwd != null" >
+                AND user_pwd = #{userPwd}
+            </if>
+            <if test="userIdentity != null" >
+                AND user_identity = #{userIdentity}
+            </if>
+            <if test="userState != null" >
+                AND user_state = #{userState}
+            </if>
+        </where>
+        ORDER BY user_id DESC
+    </select>
+
+
+
+
+
+    <select id="selectUserAll" resultMap="selUserResultMap">
+     <!--   SELECT u.*,r.* FROM sys_user u,sys_user_role ur,sys_role r -->
+        SELECT u.*,r.*,p.* FROM sys_user u,sys_user_role ur,sys_role r,sys_permission p,sys_role_perm rp
+    </select>
+    <select id="selectUser" resultType="com.snow.model.SysUserEnt" parameterType="Integer">
+        SELECT * FROM sys_user WHERE user_id = #{userId}
+    </select>
+    <insert id="insertUser">
+		 INSERT  sys_user(user_name,user_tel,user_pwd)
+		 VALUE(#{userEnt.userName},#{userEnt.userTel},#{userEnt.userPwd})
+	 </insert>
+    <delete id="delUserId">
+        DELETE FROM sys_user WHERE user_id=#{userID}
+    </delete>
+    <select id="selTableRowCount" resultType="Integer" >
+        <!--SELECT count(*) FROM sys_permission-->
+        CALL selTableRowCount(#{tableName})
+    </select>
+</mapper>
